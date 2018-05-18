@@ -112,6 +112,10 @@ func doFetchHandler(w http.ResponseWriter, r *http.Request){
 		Url: u.String(),
 	}
 
+	var errorResp = Image{
+		Url: nil,
+	}
+
 	if _, err := os.Stat(folderPath+file); err == nil {
 		fmt.Println("File Exist")
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -131,34 +135,42 @@ func doFetchHandler(w http.ResponseWriter, r *http.Request){
 
 	//Откраываем файл для обрезки
 	if image.Crop {
-		var src image2.Image
-		src, err = imaging.Open(folderPath + file)
+		if _, err := os.Stat(folderPath + file); err == nil {
+			var src image2.Image
+			src, err = imaging.Open(folderPath + file)
 
-		//Получаем размер изображения
-		imageSize := src.Bounds();
-		imgWidth := imageSize.Max.X
-		imgHeight := imageSize.Max.Y
+			//Получаем размер изображения
+			imageSize := src.Bounds();
+			imgWidth := imageSize.Max.X
+			imgHeight := imageSize.Max.Y
 
-		//вычитаем около 10 процентов высоты
-		newImgHeight := int( float64(imgHeight) * 0.9 )
-		fmt.Printf("%sx%s/%s\n", imgWidth, imgHeight, newImgHeight )
+			//вычитаем около 10 процентов высоты
+			newImgHeight := int(float64(imgHeight) * 0.9)
+			fmt.Printf("%sx%s/%s\n", imgWidth, imgHeight, newImgHeight)
 
-		if err != nil {
-			log.Fatal(err)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			dstImage128 := imaging.CropAnchor(src, imgWidth, newImgHeight, imaging.Top)
+			//dstImage128 := imaging.Resize(src,200,0, imaging.Lanczos);
+
+			imgOut, _ := os.Create(folderPath + file)
+			jpeg.Encode(imgOut, dstImage128, nil)
+			imgOut.Close()
 		}
-
-		dstImage128 := imaging.CropAnchor(src, imgWidth, newImgHeight, imaging.Top)
-		//dstImage128 := imaging.Resize(src,200,0, imaging.Lanczos);
-
-		imgOut, _ := os.Create(folderPath + file)
-		jpeg.Encode(imgOut, dstImage128, nil)
-		imgOut.Close()
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
-	if err = json.NewEncoder(w).Encode(resp); err != nil {
-		w.WriteHeader(500)
+	if _, err := os.Stat(folderPath + file); err == nil {
+		if err = json.NewEncoder(w).Encode(resp); err != nil {
+			w.WriteHeader(500)
+		}
+	} else {
+		if err = json.NewEncoder(w).Encode(errorResp); err != nil {
+			w.WriteHeader(500)
+		}
 	}
 }
 
