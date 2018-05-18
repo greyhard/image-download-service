@@ -15,6 +15,9 @@ import (
 	"path/filepath"
 	"flag"
 	"crypto/md5"
+	"github.com/disintegration/imaging"
+	"image/jpeg"
+	image2 "image"
 )
 
 var (
@@ -39,6 +42,7 @@ func main() {
 
 type Image struct {
 	Url string `json:"image"`
+	Crop bool `json:"crop"`
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
@@ -119,9 +123,37 @@ func doFetchHandler(w http.ResponseWriter, r *http.Request){
 
 	fmt.Println("Download")
 
+	//Создаем директории для файла если нет
 	os.MkdirAll(folderPath, os.ModePerm);
 
-	downloadFile(folderPath+file,image.Url);
+	//Скачиваем и сохраняем файл
+	downloadFile(folderPath+file,image.Url)
+
+	//Откраываем файл для обрезки
+	if image.Crop {
+		var src image2.Image
+		src, err = imaging.Open(folderPath + file)
+
+		//Получаем размер изображения
+		imageSize := src.Bounds();
+		imgWidth := imageSize.Max.X
+		imgHeight := imageSize.Max.Y
+
+		//вычитаем около 10 процентов высоты
+		newImgHeight := int( float64(imgHeight) * 0.9 )
+		fmt.Printf("%sx%s/%s\n", imgWidth, imgHeight, newImgHeight )
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		dstImage128 := imaging.CropAnchor(src, imgWidth, newImgHeight, imaging.Top)
+		//dstImage128 := imaging.Resize(src,200,0, imaging.Lanczos);
+
+		imgOut, _ := os.Create(folderPath + file)
+		jpeg.Encode(imgOut, dstImage128, nil)
+		imgOut.Close()
+	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
@@ -135,7 +167,6 @@ func checkErr(err error) {
 		panic(err)
 	}
 }
-
 
 func downloadFile(filepath string, url string) (err error) {
 
