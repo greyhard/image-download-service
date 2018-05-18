@@ -171,6 +171,7 @@ func checkErr(err error) {
 func downloadFile(filepath string, url string) (err error) {
 
 	// Create the file
+	println("Create File")
 	out, err := os.Create(filepath)
 	if err != nil  {
 		return err
@@ -178,20 +179,26 @@ func downloadFile(filepath string, url string) (err error) {
 	defer out.Close()
 
 	// Get the data
+	println("Download Data")
 	resp, err := http.Get(url)
 	if err != nil {
+		os.Remove(filepath)
 		return err
 	}
 	defer resp.Body.Close()
 
 	// Check server response
+	println("Check status")
 	if resp.StatusCode != http.StatusOK {
+		os.Remove(filepath)
 		return fmt.Errorf("bad status: %s", resp.Status)
 	}
 
 	// Writer the body to file
+	println("Write File")
 	_, err = io.Copy(out, resp.Body)
 	if err != nil  {
+		os.Remove(filepath)
 		return err
 	}
 
