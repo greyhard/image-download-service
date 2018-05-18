@@ -113,7 +113,7 @@ func doFetchHandler(w http.ResponseWriter, r *http.Request){
 	}
 
 	var errorResp = Image{
-		Url: nil,
+		Url: "",
 	}
 
 	if _, err := os.Stat(folderPath+file); err == nil {
