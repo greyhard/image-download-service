@@ -171,7 +171,9 @@ func checkErr(err error) {
 func downloadFile(filepath string, url string) (err error) {
 
 	// Create the file
-	println("Create File")
+
+	println(time.Now().Format(time.RFC3339), "Create File")
+
 	out, err := os.Create(filepath)
 	if err != nil  {
 		return err
@@ -179,28 +181,52 @@ func downloadFile(filepath string, url string) (err error) {
 	defer out.Close()
 
 	// Get the data
-	fmt.Printf("Download Data: %s", url)
-	resp, err := http.Get(url)
-	if err != nil {
-		os.Remove(filepath)
-		return err
-	}
-	defer resp.Body.Close()
+	fmt.Printf("%s Download Data: %s\n", time.Now().Format(time.RFC3339), url)
 
-	// Check server response
-	println("Check status")
-	if resp.StatusCode != http.StatusOK {
-		os.Remove(filepath)
-		return fmt.Errorf("bad status: %s", resp.Status)
+	if response, err := http.Get(url); err != nil {
+		fmt.Printf(err.Error())
+	} else {
+
+		fmt.Printf("Responce: %v   Error: %v\n", response, err)
+		response.Header.Set("User-Agent", "Mozilla/5.0 (Windows; U; Windows NT 5.0; en-US; rv:1.9.2a1pre) Gecko")
+
+		t_time := time.Now()
+
+		if err != nil {
+			fmt.Println("Hello")
+		} else {
+			if response.StatusCode == 200 {
+				fmt.Println(t_time.Format(time.RFC3339), "OK")
+				println("Write File")
+				_, err = io.Copy(out, response.Body)
+				if err != nil {
+					os.Remove(filepath)
+					return err
+				}
+			} else {
+				fmt.Println(t_time.Format(time.RFC3339), "BAD")
+				os.Remove(filepath)
+				return fmt.Errorf("bad status: %s", response.Status)
+			}
+		}
+
 	}
+
+	//resp, err := http.Get(url)
+	//if err != nil {
+	//	os.Remove(filepath)
+	//	return err
+	//}
+	//defer response.Body.Close()
+
+	//// Check server response
+	//println("Check status")
+	//if response.StatusCode != http.StatusOK {
+	//	os.Remove(filepath)
+	//	return fmt.Errorf("bad status: %s", resp.Status)
+	//}
 
 	// Writer the body to file
-	println("Write File")
-	_, err = io.Copy(out, resp.Body)
-	if err != nil  {
-		os.Remove(filepath)
-		return err
-	}
 
 	return nil
 }
