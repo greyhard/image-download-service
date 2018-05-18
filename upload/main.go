@@ -179,7 +179,7 @@ func downloadFile(filepath string, url string) (err error) {
 	defer out.Close()
 
 	// Get the data
-	println("Download Data")
+	fmt.Printf("Download Data: %s", url)
 	resp, err := http.Get(url)
 	if err != nil {
 		os.Remove(filepath)
