@@ -1,30 +1,32 @@
 package main
 
 import (
-	"net/http"
-	"fmt"
-	"time"
-	"io"
-	"strconv"
-	"os"
-	"html/template"
-	"github.com/gorilla/mux"
 	"encoding/json"
-	"net/url"
-	"log"
-	"path/filepath"
 	"flag"
-	"crypto/md5"
+	"fmt"
 	"github.com/disintegration/imaging"
-	"image/jpeg"
+	"github.com/gorilla/mux"
 	image2 "image"
+	"image/jpeg"
+	"io"
+	"log"
+	"math/rand"
+	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
 )
 
 var (
 	httpPort, imageDir *string
+	tasks map[int] Task
 )
 
 func main() {
+
+	tasks = make(map[int] Task)
 
 	httpPort = flag.String("port", "", "Port")
 	imageDir = flag.String("dir", "", "Path")
@@ -32,12 +34,17 @@ func main() {
 
 	r := mux.NewRouter()
 	r.HandleFunc("/", indexHandler).Methods("GET")
-	r.HandleFunc("/upload/", uploadHandler).Methods("GET")
-	r.HandleFunc("/upload/", doUploadHandler).Methods("POST")
-	r.HandleFunc("/upload/", doFetchHandler).Methods("PUT")
-	fmt.Println("http://:"+*httpPort)
-	fmt.Println("Upload dir: "+*imageDir)
-	http.ListenAndServe(":"+*httpPort, r)
+	r.HandleFunc("/task/", doCreateTask).Methods("POST")
+	r.HandleFunc("/task/", doCheckTask).Methods("GET")
+	r.HandleFunc("/status/", doStatus).Methods("GET")
+
+	fmt.Printf("%s http://:%s\n",time.Now().Format(time.RFC3339),*httpPort)
+	fmt.Printf("%s Upload dir: %s\n",time.Now().Format(time.RFC3339),*imageDir)
+	_ = http.ListenAndServe(":"+*httpPort, r)
+}
+
+type Images struct {
+	Images []Image `json:"images"`
 }
 
 type Image struct {
@@ -45,93 +52,138 @@ type Image struct {
 	Crop bool `json:"crop"`
 }
 
+type Task struct {
+	Images []Image `json:"images"`
+	TaskId int `json:"task_id"`
+	Status string `json:"status"`
+}
+
+type Status struct {
+	Queue int `json:"queue"`
+}
+
 func indexHandler(w http.ResponseWriter, r *http.Request) {
+
 	w.WriteHeader(402)
 }
 
-func uploadHandler(w http.ResponseWriter, r *http.Request) {
-
-	crutime := time.Now().Unix()
-	h := md5.New()
-	io.WriteString(h, strconv.FormatInt(crutime, 10))
-	token := fmt.Sprintf("%x", h.Sum(nil))
-
-	t, _ := template.ParseFiles("upload.gtpl")
-	t.Execute(w, token)
-}
+func doCreateTask(w http.ResponseWriter, r *http.Request) {
 
 
-func doUploadHandler(w http.ResponseWriter, r *http.Request) {
-
-	r.ParseMultipartForm(32 << 20)
-	file, handler, err := r.FormFile("uploadfile")
-	if err != nil {
-		w.WriteHeader(400)
-		return
-	}
-	defer file.Close()
-	//fmt.Fprintf(w, "%v", handler.Header)
-
-	f, err := os.OpenFile("./images/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
-	if err != nil {
-		w.WriteHeader(503)
-		return
-	}
-	defer f.Close()
-	io.Copy(f, file)
-	w.Write([]byte("Uploaded"))
-
-}
-
-func doFetchHandler(w http.ResponseWriter, r *http.Request){
-
-	fmt.Println("imagePath:", *imageDir)
-
-	var image Image
-	err := json.NewDecoder(r.Body).Decode(&image)
+	var images Images
+	err := json.NewDecoder(r.Body).Decode(&images)
 
 	checkErr(err)
+
+	taskId := rand.Int()
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	var resp = Task {
+		Images: images.Images,
+		TaskId: taskId,
+		Status: "inprogress",
+	}
+
+	tasks[taskId] = resp
+
+	go func() {
+
+		for index, image := range images.Images {
+
+			fmt.Printf("%s doFetchImage: %s\n", time.Now().Format(time.RFC3339), image.Url)
+
+			_ , newImageUrl := doFetchImage(image)
+
+			fmt.Printf("%s doFetchImage: %s\n", time.Now().Format(time.RFC3339), newImageUrl)
+
+			images.Images[index].Url = newImageUrl
+
+		}
+
+		resp.Status = "ready"
+		tasks[resp.TaskId] = resp
+
+	}()
+
+	_ = json.NewEncoder(w).Encode(resp)
+	w.WriteHeader(200)
+
+
+	//_, _ = w.Write([]byte("Uploaded"))
+
+}
+
+func doCheckTask(w http.ResponseWriter, r *http.Request) {
+
+	taskId, _ := strconv.Atoi( r.URL.Query()["taskid"][0] )
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	resp, ok := tasks[taskId]
+
+	if ok {
+
+		_ = json.NewEncoder(w).Encode(resp)
+
+		if resp.Status == "ready" {
+			delete(tasks, taskId)
+		}
+
+	} else {
+
+		var errorResp = Image {
+			Url: "",
+		}
+
+		_ = json.NewEncoder(w).Encode(errorResp)
+		w.WriteHeader(500)
+
+	}
+
+}
+
+
+func doStatus(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	status := Status{
+		Queue: len(tasks),
+	}
+
+	_ = json.NewEncoder(w).Encode(status)
+
+}
+
+func doFetchImage(image Image) (err error, out string){
+
+	fmt.Printf("%s imagePath: %s\n", time.Now().Format(time.RFC3339), *imageDir)
 
 	u, err := url.Parse(image.Url)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println(u.Path)
+	fmt.Printf("%s Image URL Path: %s\n",time.Now().Format(time.RFC3339),u.Path)
 	dir, file := filepath.Split(u.Path)
-	fmt.Println(dir)
-	fmt.Println(file)
+	fmt.Printf("%s Image DST Dir: %s\n",time.Now().Format(time.RFC3339),dir)
+	fmt.Printf("%s Image DST Filename: %s\n",time.Now().Format(time.RFC3339), file)
 
 	var folderPath = *imageDir+dir
-	fmt.Println(folderPath)
+
+	fmt.Printf("%s Image Full dir path: %s\n",time.Now().Format(time.RFC3339), folderPath)
 
 	u.Host = "img.gt-shop.ru"
 	u.Scheme = "https"
 
-	var resp = Image {
-		Url: u.String(),
-	}
-
-	var errorResp = Image{
-		Url: "",
-	}
-
-	if _, err := os.Stat(folderPath+file); err == nil {
-		fmt.Println("File Exist")
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		if err = json.NewEncoder(w).Encode(resp); err != nil {
-			w.WriteHeader(500)
-		}
-		return
-	}
-
-	fmt.Println("Download")
+	println(time.Now().Format(time.RFC3339), "Download")
 
 	//Создаем директории для файла если нет
-	os.MkdirAll(folderPath, os.ModePerm);
+	_ = os.MkdirAll(folderPath, os.ModePerm)
 
 	//Скачиваем и сохраняем файл
-	downloadFile(folderPath+file,image.Url)
+	_ = downloadFile(folderPath+file, image.Url)
 
 	//Откраываем файл для обрезки
 	if image.Crop {
@@ -140,13 +192,13 @@ func doFetchHandler(w http.ResponseWriter, r *http.Request){
 			src, err = imaging.Open(folderPath + file)
 
 			//Получаем размер изображения
-			imageSize := src.Bounds();
+			imageSize := src.Bounds()
 			imgWidth := imageSize.Max.X
 			imgHeight := imageSize.Max.Y
 
 			//вычитаем около 10 процентов высоты
 			newImgHeight := int(float64(imgHeight) * 0.9)
-			fmt.Printf("%sx%s/%s\n", imgWidth, imgHeight, newImgHeight)
+			fmt.Printf("%dx%d/%d\n", imgWidth, imgHeight, newImgHeight)
 
 			if err != nil {
 				log.Fatal(err)
@@ -156,22 +208,12 @@ func doFetchHandler(w http.ResponseWriter, r *http.Request){
 			//dstImage128 := imaging.Resize(src,200,0, imaging.Lanczos);
 
 			imgOut, _ := os.Create(folderPath + file)
-			jpeg.Encode(imgOut, dstImage128, nil)
-			imgOut.Close()
+			_ = jpeg.Encode(imgOut, dstImage128, nil)
+			_ = imgOut.Close()
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-
-	if _, err := os.Stat(folderPath + file); err == nil {
-		if err = json.NewEncoder(w).Encode(resp); err != nil {
-			w.WriteHeader(500)
-		}
-	} else {
-		if err = json.NewEncoder(w).Encode(errorResp); err != nil {
-			w.WriteHeader(500)
-		}
-	}
+	return nil, u.String()
 }
 
 func checkErr(err error) {
@@ -182,7 +224,7 @@ func checkErr(err error) {
 
 func downloadFile(filepath string, url string) (err error) {
 
-	println(time.Now().Format(time.RFC3339), "Create File")
+	println(time.Now().Format(time.RFC3339), "Create File:", filepath)
 
 	out, err := os.Create(filepath)
 	if err != nil  {
@@ -197,25 +239,25 @@ func downloadFile(filepath string, url string) (err error) {
 		fmt.Printf(err.Error())
 	} else {
 
-		fmt.Printf("Responce: %v   Error: %v\n", response, err)
+		fmt.Printf("%s Responce: %v   Error: %v\n", time.Now().Format(time.RFC3339) , response, err)
 		response.Header.Set("User-Agent", "Mozilla/5.0 (Windows; U; Windows NT 5.0; en-US; rv:1.9.2a1pre) Gecko")
 
-		t_time := time.Now()
+		tTime := time.Now()
 
 		if err != nil {
 			fmt.Println("Hello")
 		} else {
 			if response.StatusCode == 200 {
-				fmt.Println(t_time.Format(time.RFC3339), "OK")
-				println("Write File")
+				fmt.Println(tTime.Format(time.RFC3339), "OK")
+				fmt.Printf("%s Write File: %s\n", time.Now().Format(time.RFC3339), filepath)
 				_, err = io.Copy(out, response.Body)
 				if err != nil {
-					os.Remove(filepath)
+					_ = os.Remove(filepath)
 					return err
 				}
 			} else {
-				fmt.Println(t_time.Format(time.RFC3339), "BAD")
-				os.Remove(filepath)
+				fmt.Println(tTime.Format(time.RFC3339), "BAD")
+				_ = os.Remove(filepath)
 				return fmt.Errorf("bad status: %s", response.Status)
 			}
 		}
