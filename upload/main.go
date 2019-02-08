@@ -198,7 +198,8 @@ func doFetchImage(image Image) (err error, out string){
 
 			//вычитаем около 10 процентов высоты
 			newImgHeight := int(float64(imgHeight) * 0.9)
-			fmt.Printf("%dx%d/%d\n", imgWidth, imgHeight, newImgHeight)
+
+			fmt.Printf("%s Crop: %dx%d/%d \n", time.Now().Format(time.RFC3339), imgWidth, imgHeight, newImgHeight)
 
 			if err != nil {
 				log.Fatal(err)
