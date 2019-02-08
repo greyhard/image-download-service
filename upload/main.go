@@ -89,18 +89,26 @@ func doCreateTask(w http.ResponseWriter, r *http.Request) {
 
 	go func() {
 
+		var newImages []Image
+
 		for index, image := range images.Images {
 
 			fmt.Printf("%s doFetchImage: %s\n", time.Now().Format(time.RFC3339), image.Url)
 
-			_ , newImageUrl := doFetchImage(image)
+			err, newImageUrl := doFetchImage(image)
 
-			fmt.Printf("%s doFetchImage: %s\n", time.Now().Format(time.RFC3339), newImageUrl)
+			if err == nil {
 
-			images.Images[index].Url = newImageUrl
+				fmt.Printf("%s doFetchImage: %s\n", time.Now().Format(time.RFC3339), newImageUrl)
 
+				var newImage = Image{Url: newImageUrl, Crop: false}
+				newImages = append(newImages, newImage)
+				images.Images[index].Url = newImageUrl
+
+			}
 		}
 
+		resp.Images = newImages
 		resp.Status = "ready"
 		tasks[resp.TaskId] = resp
 
@@ -183,7 +191,11 @@ func doFetchImage(image Image) (err error, out string){
 	_ = os.MkdirAll(folderPath, os.ModePerm)
 
 	//Скачиваем и сохраняем файл
-	_ = downloadFile(folderPath+file, image.Url)
+	err = downloadFile(folderPath+file, image.Url)
+
+	if err != nil {
+		return err, ""
+	}
 
 	//Откраываем файл для обрезки
 	if image.Crop {
