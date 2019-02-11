@@ -69,6 +69,8 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 func doCreateTask(w http.ResponseWriter, r *http.Request) {
 
+    fmt.Printf("%s Queue: %d\n", time.Now().Format(time.RFC3339), len(tasks))
+
     var images Images
     err := json.NewDecoder(r.Body).Decode(&images)
 
@@ -79,7 +81,7 @@ func doCreateTask(w http.ResponseWriter, r *http.Request) {
 
     taskId := rand.Int()
 
-    w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
 
     var resp = Task{
         Images: images.Images,
@@ -99,6 +101,9 @@ func doCreateTask(w http.ResponseWriter, r *http.Request) {
 
             err, newImageUrl := doFetchImage(image)
 
+            if err != nil {
+                fmt.Printf("%s Downloaderror2\n", time.Now().Format(time.RFC3339))
+            }
             if err == nil {
 
                 fmt.Printf("%s New Url: %s\n", time.Now().Format(time.RFC3339), newImageUrl)
@@ -106,7 +111,6 @@ func doCreateTask(w http.ResponseWriter, r *http.Request) {
                 var newImage = Image{Url: newImageUrl, Crop: false}
                 newImages = append(newImages, newImage)
                 images.Images[index].Url = newImageUrl
-
             }
         }
 
@@ -116,8 +120,9 @@ func doCreateTask(w http.ResponseWriter, r *http.Request) {
 
     }()
 
+    w.Header().Set("Content-Type", "application/json; charset=utf-8")
     _ = json.NewEncoder(w).Encode(resp)
-    w.WriteHeader(200)
+    //w.WriteHeader(200)
 
     //_, _ = w.Write([]byte("Uploaded"))
 
@@ -239,19 +244,13 @@ func doFetchImage(image Image) (err error, out string){
 
 func downloadFile(filepath string, url string) (err error) {
 
-    println(time.Now().Format(time.RFC3339), "Create File:", filepath)
-
-    out, err := os.Create(filepath)
-    if err != nil {
-        return err
-    }
-    defer out.Close()
-
     // Get the data
     fmt.Printf("%s Download Data: %s\n", time.Now().Format(time.RFC3339), url)
 
     if response, err := http.Get(url); err != nil {
-        fmt.Printf(err.Error())
+        fmt.Printf("%s Download Error\n", time.Now().Format(time.RFC3339))
+
+        return err
     } else {
 
         fmt.Printf("%s Responce: %v   Error: %v\n", time.Now().Format(time.RFC3339), response, err)
@@ -264,12 +263,24 @@ func downloadFile(filepath string, url string) (err error) {
         } else {
             if response.StatusCode == 200 {
                 fmt.Println(tTime.Format(time.RFC3339), "OK")
+
+                println(time.Now().Format(time.RFC3339), "Create File:", filepath)
+
+                out, err := os.Create(filepath)
+                if err != nil {
+                    return err
+                }
+
                 fmt.Printf("%s Write File: %s\n", time.Now().Format(time.RFC3339), filepath)
+
                 _, err = io.Copy(out, response.Body)
                 if err != nil {
                     _ = os.Remove(filepath)
                     return err
                 }
+
+                defer out.Close()
+
             } else {
                 fmt.Println(tTime.Format(time.RFC3339), "BAD")
                 _ = os.Remove(filepath)
