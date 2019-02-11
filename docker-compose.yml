@@ -7,3 +7,5 @@ services:
       - "3008:8080"
     volumes:
       - ./images/:/upload/
+    logging:
+      driver: none
