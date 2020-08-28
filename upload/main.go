@@ -29,7 +29,8 @@ var (
     syncMapMutex       = sync.RWMutex{}
     hasActiveProxy     = false
     activeProxy        Proxy
-    proxyLimit         = 20
+    proxyLimit               = 20
+    taskTTL            int64 = 20
 )
 
 func main() {
@@ -43,8 +44,20 @@ func main() {
 
     go func() {
         for {
-            time.Sleep(60 * time.Second)
-            fmt.Printf("%s Cleanup: \n", time.Now().Format(time.RFC3339))
+            time.Sleep(5 * time.Second)
+
+            now := time.Now()
+
+            var deleted = 0
+
+            for index, task := range tasks {
+                if task.TTL < now.Unix() {
+                    delete(tasks, index)
+                    deleted++
+                }
+            }
+
+            fmt.Printf("%s Cleanup: %d , Total: %d \n", time.Now().Format(time.RFC3339), deleted, len(tasks))
         }
     }()
 
@@ -107,6 +120,7 @@ type Task struct {
     Images []Image `json:"images"`
     TaskId int     `json:"task_id"`
     Status string  `json:"status"`
+    TTL    int64   `json:"ttl"`
 }
 
 type Status struct {
@@ -132,10 +146,13 @@ func doCreateTask(w http.ResponseWriter, r *http.Request) {
 
     taskId := rand.Int()
 
+    now := time.Now()
+
     var resp = Task{
         Images: images.Images,
         TaskId: taskId,
         Status: "inprogress",
+        TTL:    now.Unix() + taskTTL,
     }
 
     syncMapMutex.Lock()
