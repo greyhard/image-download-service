@@ -52,6 +52,7 @@ func main() {
         for {
 
             if !hasActiveProxy {
+                syncMapMutex.Lock()
 
                 if len(proxy) > 0 {
                     currentProxy := proxy[0] // get the 0 index element from slice
@@ -59,11 +60,9 @@ func main() {
                     hasActiveProxy = true
                     activeProxy = currentProxy
                     fmt.Printf("%s Use proxy: %s Left %d \n", time.Now().Format(time.RFC3339), activeProxy.Ip, len(proxy))
-                } else {
-                    if err := loadProxy(); err != nil {
-                        log.Fatal(err)
-                    }
                 }
+
+                syncMapMutex.Unlock()
             }
 
             fmt.Printf("%s Proxy checker\n", time.Now().Format(time.RFC3339))
@@ -307,21 +306,28 @@ func downloadFile(filepath string, imageUrl string) (err error) {
         return errors.New("noActiveProxy")
     }
 
+    syncMapMutex.Lock()
+
     activeProxy.Usage = activeProxy.Usage + 1
 
     if activeProxy.Usage > proxyLimit {
         hasActiveProxy = false
         activeProxy = Proxy{}
+        syncMapMutex.Unlock()
         return errors.New("proxyLimitReached")
     } else {
         fmt.Printf("%s Proxy Usage %s: %d < %d\n",
             time.Now().Format(time.RFC3339), activeProxy.Ip,
             activeProxy.Usage, proxyLimit)
+        syncMapMutex.Unlock()
     }
 
+
     if activeProxy.Ip == "" {
+        syncMapMutex.Lock()
         hasActiveProxy = false
         activeProxy = Proxy{}
+        syncMapMutex.Unlock()
         return errors.New("noProxyIpDefined")
     }
 
