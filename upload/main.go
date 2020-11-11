@@ -74,7 +74,7 @@ func main() {
                     return
                 }
 
-                fmt.Print(resp.Body)
+                //fmt.Print(resp.Body)
 
                 var rawProxy RawProxy
                 err = json.NewDecoder(resp.Body).Decode(&rawProxy)
@@ -90,6 +90,8 @@ func main() {
                 }).Info("Check proxy")
 
                 defer resp.Body.Close()
+
+                rawProxy.Host = "138.68.41.90:1080"
 
                 var chunk = strings.Split(rawProxy.Host, ":")
                 var port, _ = strconv.Atoi(chunk[1])
