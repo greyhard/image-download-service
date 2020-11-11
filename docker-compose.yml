@@ -9,3 +9,5 @@ services:
       - ./images/:/upload/
     logging:
       driver: none
+    environment:
+      CHECK_URL: "https://www.rockauto.com/"

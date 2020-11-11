@@ -28,7 +28,7 @@ var (
     syncMapMutex       = sync.RWMutex{}
     hasActiveProxy     = false
     activeProxy        Proxy
-    proxyLimit                        = 20
+    proxyLimit               = 20
     taskTTL            int64 = 20
 )
 
