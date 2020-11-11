@@ -16,7 +16,6 @@ import (
     "os"
     "path/filepath"
     "strconv"
-    "strings"
     "sync"
     "time"
 )
@@ -91,12 +90,12 @@ func main() {
 
                 defer resp.Body.Close()
 
-                var chunk = strings.Split(rawProxy.Host, ":")
-                var port, _ = strconv.Atoi(chunk[1])
+                //var chunk = strings.Split(rawProxy.Host, ":")
+                //var port, _ = strconv.Atoi(chunk[1])
 
                 currentProxy := Proxy{
-                    Ip:    chunk[0],
-                    Port:  port,
+                    Ip:    rawProxy.Host,
+                    Port:  9999,
                     Usage: 0,
                 } // get the 0 index element from slice
 
@@ -107,7 +106,7 @@ func main() {
                 }).Info("Check proxy")
 
                 proxyUrl, _ := url.Parse(fmt.Sprintf("socks5://%s", currentProxy.Ip))
-                timeout := 10 * time.Second
+                timeout := 20 * time.Second
 
                 httpProxy := &http.Client{
                     Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)},
