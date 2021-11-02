@@ -1,6 +1,7 @@
 package main
 
 import (
+    "bytes"
     "encoding/json"
     "errors"
     "fmt"
@@ -23,12 +24,47 @@ import (
 var (
     httpPort, imageDir string
     tasks              map[int]Task
-    syncMapMutex       = sync.RWMutex{}
-    hasActiveProxy     = false
-    activeProxy        Proxy
+    syncMapMutex             = sync.RWMutex{}
+    hasActiveProxy           = false
+    activeProxy              = &Proxy{}
     proxyLimit               = 20
     taskTTL            int64 = 20
 )
+
+func getProxy() (*Proxy, error) {
+    resp, err := http.Get("http://img.gt-shop.ru:12345/api/proxy")
+    if err != nil {
+        fmt.Println(err)
+        return nil, err
+    }
+
+    //fmt.Print(resp.Body)
+
+    var rawProxy RawProxy
+    err = json.NewDecoder(resp.Body).Decode(&rawProxy)
+    if err != nil {
+        fmt.Println(err)
+        return nil, err
+    }
+
+    log.WithFields(log.Fields{
+        "package":  "main",
+        "function": "proxyChecker",
+        "RawHost":  rawProxy.Host,
+    }).Info("Check proxy")
+
+    defer resp.Body.Close()
+
+    //var chunk = strings.Split(rawProxy.Host, ":")
+    //var port, _ = strconv.Atoi(chunk[1])
+
+    return &Proxy{
+        Ip:    rawProxy.Host,
+        Port:  9999,
+        Usage: 0,
+    }, nil // get the 0 index element from slice
+
+}
 
 func main() {
 
@@ -65,37 +101,12 @@ func main() {
             if !hasActiveProxy {
                 syncMapMutex.Lock()
 
-                resp, err := http.Get("http://img.gt-shop.ru:12345/api/proxy")
+                currentProxy, err := getProxy()
+
                 if err != nil {
                     fmt.Println(err)
                     return
                 }
-
-                //fmt.Print(resp.Body)
-
-                var rawProxy RawProxy
-                err = json.NewDecoder(resp.Body).Decode(&rawProxy)
-                if err != nil {
-                    fmt.Println(err)
-                    return
-                }
-
-                log.WithFields(log.Fields{
-                    "package":  "main",
-                    "function": "proxyChecker",
-                    "RawHost":  rawProxy.Host,
-                }).Info("Check proxy")
-
-                defer resp.Body.Close()
-
-                //var chunk = strings.Split(rawProxy.Host, ":")
-                //var port, _ = strconv.Atoi(chunk[1])
-
-                currentProxy := Proxy{
-                    Ip:    rawProxy.Host,
-                    Port:  9999,
-                    Usage: 0,
-                } // get the 0 index element from slice
 
                 log.WithFields(log.Fields{
                     "package":  "main",
@@ -190,6 +201,12 @@ type Proxy struct {
     Ip    string
     Port  int
     Usage int
+}
+
+type ProxyUsage struct {
+    Host    string `json:"host"`
+    Req     int    `json:"req"`
+    Problem bool   `json:"problem"`
 }
 
 type Task struct {
@@ -437,9 +454,48 @@ func downloadFile(filepath string, imageUrl string) (err error) {
 
     if activeProxy.Usage > proxyLimit {
         hasActiveProxy = false
-        activeProxy = Proxy{}
+
+        free := ProxyUsage{
+            Host:    activeProxy.Ip,
+            Req:     proxyLimit,
+            Problem: false,
+        }
+
+        json_data, err := json.Marshal(free)
+
+        if err != nil {
+            log.Fatal(err)
+        }
+
+        r := bytes.NewReader(json_data)
+
+        body, err := http.Post(
+            "http://img.gt-shop.ru:12345/api/proxy",
+            "application/json; charset=UTF-8",
+            r)
+
+        fmt.Printf("%s Free Proxy: %s\n",
+            time.Now().Format(time.RFC3339), body.Status)
+        fmt.Println(body.Status)
+
+        if err != nil {
+            fmt.Println(err)
+        }
+
+        currentProxy, err := getProxy()
+
+        if err != nil {
+            fmt.Println(err)
+            return errors.New("proxyLimitReached")
+        }
+
+        fmt.Printf("%s New Proxy %s: %d < %d\n",
+            time.Now().Format(time.RFC3339), currentProxy.Ip,
+            currentProxy.Usage, proxyLimit)
+
+        activeProxy = currentProxy
         syncMapMutex.Unlock()
-        return errors.New("proxyLimitReached")
+        //return errors.New("proxyLimitReached")
     } else {
         fmt.Printf("%s Proxy Usage %s: %d < %d\n",
             time.Now().Format(time.RFC3339), activeProxy.Ip,
@@ -450,7 +506,7 @@ func downloadFile(filepath string, imageUrl string) (err error) {
     if activeProxy.Ip == "" {
         syncMapMutex.Lock()
         hasActiveProxy = false
-        activeProxy = Proxy{}
+        activeProxy = &Proxy{}
         syncMapMutex.Unlock()
         return errors.New("noProxyIpDefined")
     }
@@ -472,7 +528,7 @@ func downloadFile(filepath string, imageUrl string) (err error) {
 
     if response, err := proxy.Get(imageUrl); err != nil {
         hasActiveProxy = false
-        activeProxy = Proxy{}
+        activeProxy = &Proxy{}
         return err
 
     } else {
