@@ -474,8 +474,8 @@ func downloadFile(filepath string, imageUrl string) (err error) {
             "application/json; charset=UTF-8",
             r)
 
-        fmt.Printf("%s Free Proxy: %s\n",
-            time.Now().Format(time.RFC3339), body.Status)
+        fmt.Printf("%s Free Proxy [%s]: %s\n",
+            time.Now().Format(time.RFC3339), free.Host, body.Status)
         fmt.Println(body.Status)
 
         if err != nil {
