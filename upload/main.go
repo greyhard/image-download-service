@@ -23,7 +23,6 @@ import (
 var (
     httpPort, imageDir string
     tasks              map[int]Task
-    proxy              []Proxy
     syncMapMutex       = sync.RWMutex{}
     hasActiveProxy     = false
     activeProxy        Proxy
@@ -36,38 +35,37 @@ func main() {
     tasks = make(map[int]Task)
     //proxy = make(map[string]Proxy)
 
+    //go func() {
+    //    for {
+    //        time.Sleep(5 * time.Second)
+    //
+    //        now := time.Now()
+    //
+    //        var deleted = 0
+    //
+    //        for index, task := range tasks {
+    //            if task.TTL < now.Unix() {
+    //                delete(tasks, index)
+    //                deleted++
+    //            }
+    //        }
+    //
+    //        log.WithFields(log.Fields{
+    //            "package":  "main",
+    //            "function": "cleanup",
+    //            "deleted":  deleted,
+    //            "left":     len(tasks),
+    //        }).Info("Cleanup Tasks")
+    //
+    //    }
+    //}()
+
     go func() {
         for {
-            time.Sleep(5 * time.Second)
-
-            now := time.Now()
-
-            var deleted = 0
-
-            for index, task := range tasks {
-                if task.TTL < now.Unix() {
-                    delete(tasks, index)
-                    deleted++
-                }
-            }
-
-            log.WithFields(log.Fields{
-                "package":  "main",
-                "function": "cleanup",
-                "deleted":  deleted,
-                "left":     len(tasks),
-            }).Info("Cleanup Tasks")
-
-        }
-    }()
-
-    go func() {
-        for {
-
             if !hasActiveProxy {
                 syncMapMutex.Lock()
 
-                resp, err := http.Get("http://176.9.84.83:12345/api/proxy")
+                resp, err := http.Get("http://img.gt-shop.ru:12345/api/proxy")
                 if err != nil {
                     fmt.Println(err)
                     return
@@ -130,28 +128,20 @@ func main() {
                         "package":  "main",
                         "function": "proxyChecker",
                         "found":    activeProxy.Ip,
-                        "left":     len(proxy),
                     }).Info("Found proxy")
 
                 } else {
-
                     log.WithFields(log.Fields{
                         "package":  "main",
                         "function": "proxyChecker",
-                        "left":     len(proxy),
                     }).Warning("Bad proxy. Check Next")
-
-                    //fmt.Printf("%s %s \n", time.Now().Format(time.RFC3339), err.Error())
-                    //fmt.Printf("%s Check next proxy. Left %d \n", time.Now().Format(time.RFC3339), len(proxy))
                 }
 
                 syncMapMutex.Unlock()
             } else {
                 time.Sleep(5 * time.Second)
             }
-
         }
-
     }()
 
     exists := false
@@ -175,7 +165,7 @@ func main() {
     log.WithFields(log.Fields{
         "package":    "main",
         "function":   "main",
-        "server":     "http://" + httpPort,
+        "server":     "http://127.0.0.1:" + httpPort,
         "upload dir": imageDir,
     }).Info("Start Http server")
 
@@ -214,8 +204,7 @@ type Status struct {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-
-    w.WriteHeader(402)
+    w.WriteHeader(403)
 }
 
 func doCreateTask(w http.ResponseWriter, r *http.Request) {
