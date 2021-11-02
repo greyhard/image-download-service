@@ -461,13 +461,13 @@ func downloadFile(filepath string, imageUrl string) (err error) {
             Problem: false,
         }
 
-        json_data, err := json.Marshal(free)
+        jsonData, err := json.Marshal(free)
 
         if err != nil {
             log.Fatal(err)
         }
 
-        r := bytes.NewReader(json_data)
+        r := bytes.NewReader(jsonData)
 
         body, err := http.Post(
             "http://img.gt-shop.ru:12345/api/proxy",
@@ -476,7 +476,6 @@ func downloadFile(filepath string, imageUrl string) (err error) {
 
         fmt.Printf("%s Free Proxy [%s]: %s\n",
             time.Now().Format(time.RFC3339), free.Host, body.Status)
-        fmt.Println(body.Status)
 
         if err != nil {
             fmt.Println(err)
@@ -489,12 +488,14 @@ func downloadFile(filepath string, imageUrl string) (err error) {
             return errors.New("proxyLimitReached")
         }
 
-        fmt.Printf("%s New Proxy %s: %d < %d\n",
-            time.Now().Format(time.RFC3339), currentProxy.Ip,
-            currentProxy.Usage, proxyLimit)
-
         activeProxy = currentProxy
+
         syncMapMutex.Unlock()
+
+        fmt.Printf("%s New Proxy %s: %d < %d\n",
+            time.Now().Format(time.RFC3339), activeProxy.Ip,
+            activeProxy.Usage, proxyLimit)
+
         //return errors.New("proxyLimitReached")
     } else {
         fmt.Printf("%s Proxy Usage %s: %d < %d\n",
