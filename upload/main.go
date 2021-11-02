@@ -471,7 +471,7 @@ func downloadFile(filepath string, imageUrl string) (err error) {
 
         body, err := http.Post(
             "http://img.gt-shop.ru:12345/api/proxy",
-            "application/json; charset=UTF-8",
+            "text/plain; charset=utf-8",
             r)
 
         fmt.Printf("%s Free Proxy [%s]{%s}: %s\n",
