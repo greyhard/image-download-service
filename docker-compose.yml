@@ -1,10 +1,10 @@
 version: '3'
 services:
   service:
-    restart: always
+    restart: unless-stopped
     build: ./upload/
     ports:
-      - "3008:8080"
+      - "127.0.0.1:3008:8080"
     volumes:
       - ./images/:/upload/
     logging:

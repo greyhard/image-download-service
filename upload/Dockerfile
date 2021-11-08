@@ -1,10 +1,20 @@
-FROM golang:1.13-alpine
+############################
+# STEP 1 build executable binary
+############################
+FROM golang:1.17-alpine as builder
 
 WORKDIR /go/src/app
 COPY . .
 
-RUN apk add git
 RUN go get -d -v ./...
 RUN go install -v ./...
+RUN go build -o /go/bin/imageservice
 
-CMD [ "app", "-dir=/upload", "-port=8080" ]
+############################
+# STEP 2 build a small image
+############################
+FROM  golang:1.17-alpine
+WORKDIR /go/src/app
+COPY --from=builder /go/bin/imageservice /go/bin/imageservice
+
+CMD [ "/go/bin/imageservice", "-dir=/upload", "-port=8080" ]
