@@ -6,8 +6,8 @@ services:
     ports:
       - "127.0.0.1:3008:8080"
     volumes:
-      - ./images/:/upload/
-    logging:
-      driver: none
+      - $UPLOAD_DIR:/go/src/app/upload
+    #    logging:
+    #      driver: none
     environment:
       CHECK_URL: "https://www.rockauto.com/"
