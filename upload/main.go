@@ -288,6 +288,17 @@ func doCreateTask(w http.ResponseWriter, r *http.Request) {
         resp.Images = newImages
         resp.Status = "ready"
 
+        syncMapMutex.Lock()
+        tasks[taskId] = resp
+        syncMapMutex.Unlock()
+
+        log.WithFields(log.Fields{
+            "package":     "main",
+            "function":    "doCreateTask.go",
+            "resp.TaskId": resp.TaskId,
+            "resp.Status": resp.Status,
+        }).Warning("Success")
+
     }()
 
     w.Header().Set("Content-Type", "application/json; charset=utf-8")
