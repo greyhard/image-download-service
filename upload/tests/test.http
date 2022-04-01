@@ -1,0 +1,32 @@
+POST http://127.0.0.1:8080/task/
+Content-Type: application/json
+
+{
+  "images": [
+    {
+      "url": "https://gt-shop.ru/images/w600/newdata/amobuc.bmf.xl.jpg",
+      "crop": false
+    }
+  ]
+}
+
+###
+
+POST http://img.gt-shop.ru:3008/task/
+Content-Type: application/json
+
+{
+  "images": [
+    {
+      "url": "https://gt-shop.ru/images/w600/newdata/amobuc.bmf.xl.jpg",
+      "crop": false
+    }
+  ]
+}
+
+###
+GET http://127.0.0.1:8080/status/
+Accept: application/json
+
+###
+

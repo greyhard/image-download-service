@@ -1,0 +1,6 @@
+/pkg/
+/.idea/
+/projectFilesBackup/.idea/
+/bin/
+/upload/images/
+/upload/imageService
