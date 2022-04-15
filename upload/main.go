@@ -466,7 +466,7 @@ func downloadFile(filepath string, imageUrl string) (err error) {
 		r := bytes.NewReader(jsonData)
 
 		body, err := http.Post(
-			"http://img.gt-shop.ru:12345/api/proxy",
+			proxyApiServer+"/api/proxy",
 			"text/plain; charset=utf-8",
 			r)
 
