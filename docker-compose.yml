@@ -1,4 +1,4 @@
-version: '3'
+version: '3.3'
 services:
   service:
     restart: unless-stopped
@@ -6,8 +6,9 @@ services:
     ports:
       - "127.0.0.1:3008:8080"
     volumes:
-      - $UPLOAD_DIR:/go/src/app/upload
+      - ${UPLOAD_DIR}:/go/src/app/upload
     #    logging:
     #      driver: none
     environment:
-      CHECK_URL: "https://www.rockauto.com/"
+      CHECK_URL: ${CHECK_URL}
+      PROXY_API: ${PROXY_API}

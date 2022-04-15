@@ -206,7 +206,7 @@ type Status struct {
 	Queue int `json:"queue"`
 }
 
-func indexHandler(w http.ResponseWriter, r *http.Request) {
+func indexHandler(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(403)
 }
 
@@ -326,7 +326,7 @@ func doCheckTask(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func doStatus(w http.ResponseWriter, r *http.Request) {
+func doStatus(w http.ResponseWriter, _ *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
@@ -580,45 +580,3 @@ func downloadFile(filepath string, imageUrl string) (err error) {
 
 	return nil
 }
-
-//func loadProxy() (err error) {
-//
-//    if file, err := os.Open("proxy.txt"); err == nil {
-//
-//        scanner := bufio.NewScanner(file)
-//        for scanner.Scan() {
-//
-//            log.WithFields(log.Fields{
-//                "package": "main",
-//                "function": "loadProxy",
-//                "loaded": scanner.Text(),
-//            }).Info("Bad Status")
-//
-//            proxy = append(proxy, Proxy{
-//                Ip:    scanner.Text(),
-//                Port:  9999,
-//                Usage: 0,
-//            })
-//
-//        }
-//
-//        //proxy = Shuffle(proxy)
-//
-//        return nil
-//
-//    }
-//
-//    return errors.New("cantOpenProxyFile")
-//}
-
-//func Shuffle(vals []Proxy) []Proxy {
-//    r := rand.New(rand.NewSource(time.Now().Unix()))
-//    ret := make([]Proxy, len(vals))
-//    n := len(vals)
-//    for i := 0; i < n; i++ {
-//        randIndex := r.Intn(len(vals))
-//        ret[i] = vals[randIndex]
-//        vals = append(vals[:randIndex], vals[randIndex+1:]...)
-//    }
-//    return ret
-//}
