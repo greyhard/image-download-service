@@ -12,3 +12,4 @@ services:
     environment:
       CHECK_URL: ${CHECK_URL}
       PROXY_API: ${PROXY_API}
+      CHECKER_ONLY: ${CHECKER_ONLY}

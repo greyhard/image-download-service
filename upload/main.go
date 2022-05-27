@@ -130,13 +130,13 @@ func getProxy() (*Proxy, error) {
 
 func main() {
 
-    checkerOnly, _ = getenvBool("CHEKER_ONLY")
+    checkerOnly, _ = getenvBool("CHECKER_ONLY")
 
     log.WithFields(log.Fields{
         "checkerOnly": checkerOnly,
         "package":     "main",
         "function":    "main",
-    }).Info("CHEKER_ONLY")
+    }).Info("CHECKER_ONLY")
 
     exists := false
     httpPort, exists = os.LookupEnv("PORT")
