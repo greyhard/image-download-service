@@ -13,7 +13,6 @@ import (
     "io"
     "math/rand"
     "net/http"
-    "net/http/httputil"
     "net/url"
     "os"
     "path/filepath"
@@ -115,7 +114,12 @@ func getProxy() (*Proxy, error) {
         "RawHost":  rawProxy.Host,
     }).Info("Check proxy")
 
-    defer resp.Body.Close()
+    defer func(Body io.ReadCloser) {
+        err := Body.Close()
+        if err != nil {
+            log.Fatal(err)
+        }
+    }(resp.Body)
 
     //var chunk = strings.Split(rawProxy.Host, ":")
     //var port, _ = strconv.Atoi(chunk[1])
@@ -160,7 +164,6 @@ func main() {
 
     r.HandleFunc("/", indexHandler).Methods("GET")
     r.HandleFunc("/task/", doCreateTask).Methods("POST")
-    //r.HandleFunc("/task/", doCreateTask2).Methods("POST")
     r.HandleFunc("/task/", doCheckTask).Methods("GET")
     r.HandleFunc("/status/", ServiceStatus).Methods("GET")
 
@@ -169,7 +172,7 @@ func main() {
         "function":   "main",
         "server":     "http://127.0.0.1:" + httpPort,
         "upload dir": imageDir,
-    }).Info("Start Http server")
+    }).Fatal("Start Http server")
 
     _ = http.ListenAndServe(":"+httpPort, r)
 
@@ -250,33 +253,6 @@ func prepareProxyLoop() {
 
 func indexHandler(w http.ResponseWriter, _ *http.Request) {
     w.WriteHeader(403)
-}
-
-func doCreateTask2(w http.ResponseWriter, r *http.Request) {
-    var images Images
-
-    requestDump, err := httputil.DumpRequest(r, true)
-    if err != nil {
-        fmt.Println(err)
-    }
-    fmt.Println(string(requestDump))
-
-    err = json.NewDecoder(r.Body).Decode(&images)
-
-    if err != nil {
-        w.WriteHeader(500)
-        return
-    }
-
-    for index, image := range images.Images {
-        log.WithFields(log.Fields{
-            "package":  "main",
-            "function": "doCreateTask",
-            "image":    image.Url,
-            "index":    index,
-        }).Info("Image")
-    }
-
 }
 
 func doCreateTask(w http.ResponseWriter, r *http.Request) {
