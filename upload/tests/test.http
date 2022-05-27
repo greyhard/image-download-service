@@ -4,11 +4,15 @@ Content-Type: application/json
 {
   "images": [
     {
-      "url": "https://gt-shop.ru/images/w600/newdata/amobuc.bmf.xl.jpg",
+      "url": "https://gt-shop.ru/images/info/983/983_SK405070_putaway_3.jpg",
       "crop": false
     }
   ]
 }
+
+###
+GET http://127.0.0.1:8080/task/?taskid=5577006791947779410
+Content-Type: application/json
 
 ###
 
