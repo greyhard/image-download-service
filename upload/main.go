@@ -94,6 +94,12 @@ func getenvBool(key string) (bool, error) {
 
 func getProxy() (*Proxy, error) {
 
+	log.WithFields(log.Fields{
+		"package":    "main",
+		"function":   "getProxy",
+		"proxyGroup": proxyGroup,
+	}).Info("Get Proxy From Api")
+
 	resp, err := http.Get(proxyApiServer + fmt.Sprintf("/api/proxy/%s", proxyGroup))
 	if err != nil {
 		fmt.Println(err)
@@ -276,6 +282,7 @@ func doCreateTask(w http.ResponseWriter, r *http.Request) {
 	log.WithFields(log.Fields{
 		"package":  "main",
 		"function": "doCreateTask",
+		"body":     r.Body,
 		"image":    images.Images[0].Url,
 	}).Info("Input Body")
 
@@ -308,7 +315,7 @@ func doCreateTask(w http.ResponseWriter, r *http.Request) {
 
 			newImageUrl := ""
 
-			if err, newImageUrl = doFetchImage(image); err != nil {
+			if err, newImageUrl = DoFetchImage(image); err != nil {
 				log.WithFields(log.Fields{
 					"package":   "main",
 					"function":  "doCreateTask",
@@ -397,11 +404,11 @@ func ServiceStatus(w http.ResponseWriter, _ *http.Request) {
 
 }
 
-func doFetchImage(image Image) (err error, out string) {
+func DoFetchImage(image Image) (err error, out string) {
 
 	log.WithFields(log.Fields{
 		"package":   "main",
-		"function":  "doFetchImage",
+		"function":  "DoFetchImage",
 		"imagePath": imageDir,
 		"imageUrl":  image.Url,
 	}).Info("imagePath")
@@ -413,7 +420,7 @@ func doFetchImage(image Image) (err error, out string) {
 
 	log.WithFields(log.Fields{
 		"package":  "main",
-		"function": "doFetchImage",
+		"function": "DoFetchImage",
 		"path":     u.Path,
 	}).Info("Image URL Path")
 
@@ -423,7 +430,7 @@ func doFetchImage(image Image) (err error, out string) {
 
 	log.WithFields(log.Fields{
 		"package":  "main",
-		"function": "doFetchImage",
+		"function": "DoFetchImage",
 		"dir":      dir,
 		"filename": file,
 		"path":     folderPath,
@@ -440,7 +447,7 @@ func doFetchImage(image Image) (err error, out string) {
 	if _, err := os.Stat(folderPath + file); err == nil {
 		log.WithFields(log.Fields{
 			"package":  "main",
-			"function": "doFetchImage",
+			"function": "DoFetchImage",
 			"filename": file,
 			"path":     folderPath,
 		}).Info("File Exist")
@@ -450,7 +457,7 @@ func doFetchImage(image Image) (err error, out string) {
 
 	log.WithFields(log.Fields{
 		"package":  "main",
-		"function": "doFetchImage",
+		"function": "DoFetchImage",
 	}).Info("Download")
 
 	/// Если вы в режиме только проверки то скачвание не производим
@@ -485,7 +492,7 @@ func doFetchImage(image Image) (err error, out string) {
 
 			log.WithFields(log.Fields{
 				"package":      "main",
-				"function":     "doFetchImage",
+				"function":     "DoFetchImage",
 				"imgWidth":     imgWidth,
 				"imgHeight":    imgHeight,
 				"newImgHeight": newImgHeight,

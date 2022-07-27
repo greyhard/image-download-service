@@ -4,7 +4,7 @@ Content-Type: application/json
 {
   "images": [
     {
-      "url": "https://gt-shop.ru/images/info/983/983_SK405070_putaway_3.jpg",
+      "image": "https://www.rockauto.com/info/768/768_ULTRAPOWER STANDARD MOTOR PRODUCTS_B75001_2.jpg",
       "crop": false
     }
   ]
