@@ -529,6 +529,7 @@ func DownloadFile(filepath string, imageUrl string) (err error) {
 			"package":  "main",
 			"function": "DownloadFile",
 			"usage":    activeProxy.Usage,
+			"limit":    proxyLimit,
 			"host":     activeProxy.Ip,
 		}).Info("Return Proxy and make Free")
 
@@ -579,12 +580,11 @@ func DownloadFile(filepath string, imageUrl string) (err error) {
 		}).Info("New Proxy")
 
 		//return errors.New("proxyLimitReached")
-	} else {
-		fmt.Printf("%s Proxy Usage %s: %d < %d\n",
-			time.Now().Format(time.RFC3339), activeProxy.Ip,
-			activeProxy.Usage, proxyLimit)
-		syncMapMutex.Unlock()
 	}
+	//fmt.Printf("%s Proxy Usage %s: %d < %d\n",
+	//	time.Now().Format(time.RFC3339), activeProxy.Ip,
+	//	activeProxy.Usage, proxyLimit)
+	syncMapMutex.Unlock()
 
 	if activeProxy.Ip == "" {
 		syncMapMutex.Lock()
@@ -600,6 +600,7 @@ func DownloadFile(filepath string, imageUrl string) (err error) {
 		"function": "downloadFile",
 		"imageUrl": imageUrl,
 		"usage":    activeProxy.Usage,
+		"limit":    proxyLimit,
 		"host":     activeProxy.Ip,
 	}).Info("Download Data")
 
