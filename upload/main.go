@@ -143,6 +143,22 @@ func main() {
 		"function":    "main",
 	}).Info("CHECKER_ONLY")
 
+	proxyGroup, _ = getenvStr("PROXY_GROUP")
+
+	if proxyGroup == "" {
+		log.WithFields(log.Fields{
+			"package":  "main",
+			"function": "main",
+		}).Fatal("PROXY_GROUP not defined in env")
+		os.Exit(1)
+	}
+
+	log.WithFields(log.Fields{
+		"proxyGroup": proxyGroup,
+		"package":    "main",
+		"function":   "main",
+	}).Info("PROXY_GROUP")
+
 	exists := false
 	httpPort, exists = os.LookupEnv("PORT")
 	if !exists {
@@ -172,6 +188,7 @@ func main() {
 		"package":    "main",
 		"function":   "main",
 		"server":     "http://127.0.0.1:" + httpPort,
+		"proxyGroup": proxyGroup,
 		"upload dir": imageDir,
 	}).Fatal("Start Http server")
 
