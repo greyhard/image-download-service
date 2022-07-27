@@ -285,8 +285,8 @@ func doCreateTask(w http.ResponseWriter, r *http.Request) {
 	log.WithFields(log.Fields{
 		"package":  "main",
 		"function": "doCreateTask",
-		"body":     r.Body,
-		"image":    images.Images[0].Url,
+		//"body":     r.Body,
+		"image": images.Images[0].Url,
 	}).Info("Input Body")
 
 	taskId := rand.Int()
@@ -524,6 +524,14 @@ func DownloadFile(filepath string, imageUrl string) (err error) {
 	activeProxy.Usage = activeProxy.Usage + 1
 
 	if activeProxy.Usage > proxyLimit {
+
+		log.WithFields(log.Fields{
+			"package":  "main",
+			"function": "DownloadFile",
+			"usage":    activeProxy.Usage,
+			"host":     activeProxy.Ip,
+		}).Info("Return Proxy and make Free")
+
 		hasActiveProxy = false
 
 		free := ProxyUsage{
@@ -538,12 +546,11 @@ func DownloadFile(filepath string, imageUrl string) (err error) {
 			log.Fatal(err)
 		}
 
-		r := bytes.NewReader(jsonData)
-
 		body, err := http.Post(
 			proxyApiServer+"/api/proxy",
 			"text/plain; charset=utf-8",
-			r)
+			bytes.NewReader(jsonData),
+		)
 
 		fmt.Printf("%s Free Proxy [%s]{%s}: %s\n",
 			time.Now().Format(time.RFC3339), free.Host, jsonData, body.Status)
@@ -563,9 +570,13 @@ func DownloadFile(filepath string, imageUrl string) (err error) {
 
 		syncMapMutex.Unlock()
 
-		fmt.Printf("%s New Proxy %s: %d < %d\n",
-			time.Now().Format(time.RFC3339), activeProxy.Ip,
-			activeProxy.Usage, proxyLimit)
+		log.WithFields(log.Fields{
+			"package":  "main",
+			"function": "DownloadFile",
+			"usage":    activeProxy.Usage,
+			"host":     activeProxy.Ip,
+			"limit":    proxyLimit,
+		}).Info("New Proxy")
 
 		//return errors.New("proxyLimitReached")
 	} else {
@@ -588,6 +599,8 @@ func DownloadFile(filepath string, imageUrl string) (err error) {
 		"package":  "main",
 		"function": "downloadFile",
 		"imageUrl": imageUrl,
+		"usage":    activeProxy.Usage,
+		"host":     activeProxy.Ip,
 	}).Info("Download Data")
 
 	proxyUrl, err := url.Parse(fmt.Sprintf("socks5://%s", activeProxy.Ip))
