@@ -569,8 +569,6 @@ func DownloadFile(filepath string, imageUrl string) (err error) {
 
 		activeProxy = currentProxy
 
-		syncMapMutex.Unlock()
-
 		log.WithFields(log.Fields{
 			"package":  "main",
 			"function": "DownloadFile",
@@ -581,9 +579,7 @@ func DownloadFile(filepath string, imageUrl string) (err error) {
 
 		//return errors.New("proxyLimitReached")
 	}
-	//fmt.Printf("%s Proxy Usage %s: %d < %d\n",
-	//	time.Now().Format(time.RFC3339), activeProxy.Ip,
-	//	activeProxy.Usage, proxyLimit)
+
 	syncMapMutex.Unlock()
 
 	if activeProxy.Ip == "" {
