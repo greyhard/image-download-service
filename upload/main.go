@@ -150,14 +150,8 @@ func main() {
 			"package":  "main",
 			"function": "main",
 		}).Fatal("PROXY_GROUP not defined in env")
-		os.Exit(1)
+		os.Exit(3)
 	}
-
-	log.WithFields(log.Fields{
-		"proxyGroup": proxyGroup,
-		"package":    "main",
-		"function":   "main",
-	}).Info("PROXY_GROUP")
 
 	exists := false
 	httpPort, exists = os.LookupEnv("PORT")
