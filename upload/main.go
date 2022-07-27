@@ -175,7 +175,7 @@ func main() {
 
 	tasks = make(map[int]Task)
 
-	if checkerOnly == true {
+	if checkerOnly == false {
 		prepareProxyLoop()
 	}
 
@@ -205,11 +205,14 @@ func prepareProxyLoop() {
 		log.WithFields(log.Fields{
 			"package":  "main",
 			"function": "main",
-		}).Info("No Proxy Api url")
-		os.Exit(1)
+		}).Fatal("No Proxy Api url")
 	}
 
 	go func() {
+		log.WithFields(log.Fields{
+			"package":  "main",
+			"function": "prepareProxyLoop",
+		}).Info("Start Loop Checker")
 		for {
 			if !hasActiveProxy {
 				syncMapMutex.Lock()
