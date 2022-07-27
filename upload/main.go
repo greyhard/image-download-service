@@ -184,7 +184,7 @@ func main() {
 		"server":     "http://127.0.0.1:" + httpPort,
 		"proxyGroup": proxyGroup,
 		"upload dir": imageDir,
-	}).Fatal("Start Http server")
+	}).Info("Start Http server")
 
 	_ = http.ListenAndServe(":"+httpPort, r)
 
