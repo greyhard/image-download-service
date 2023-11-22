@@ -266,6 +266,15 @@ func prepareProxyLoop() {
 
 				syncMapMutex.Unlock()
 			} else {
+				// check all tasks and remove expired
+				syncMapMutex.Lock()
+				for taskId, task := range tasks {
+					if task.TTL < uint32(time.Now().Unix()) {
+						delete(tasks, taskId)
+					}
+				}
+				syncMapMutex.Unlock()
+
 				time.Sleep(5 * time.Second)
 			}
 		}
