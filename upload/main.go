@@ -99,11 +99,34 @@ func getProxy() (*Proxy, error) {
 		"function":   "getProxy",
 		"proxyGroup": proxyGroup,
 	}).Info("Get Proxy From Api")
+	/* retry every 60 second if not success
 
-	resp, err := http.Get(proxyApiServer + fmt.Sprintf("/api/proxy/%s", proxyGroup))
-	if err != nil {
-		fmt.Println(err)
-		return nil, err
+	 */
+
+	var (
+		resp *http.Response
+		err  error
+	)
+
+	for {
+		resp, err = http.Get(proxyApiServer + fmt.Sprintf("/api/proxy/%s", proxyGroup))
+		if err != nil {
+			fmt.Println(err)
+			return nil, err
+		}
+
+		if resp.StatusCode == http.StatusOK {
+			// Process the successful response here
+			break
+		}
+
+		log.WithFields(log.Fields{
+			"package":    "main",
+			"function":   "getProxy",
+			"proxyGroup": proxyGroup,
+		}).Info("Status Code: ", resp.StatusCode, " Retry in 20 second")
+
+		time.Sleep(20 * time.Second)
 	}
 
 	//fmt.Print(resp.Body)
